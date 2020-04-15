@@ -17,7 +17,8 @@ from libs.db_sqlite import SqliteDatabase
 
 if __name__ == '__main__':
   config = get_config()
-
+  
+  # this program uses a SQLLite database
   db = SqliteDatabase()
 
   parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter)
@@ -29,29 +30,38 @@ if __name__ == '__main__':
     sys.exit(0)
 
   seconds = int(args.seconds)
-
+  
+#setting channels to 2 indicates stereo 
   chunksize = 2**12  # 4096
   channels = 2#int(config['channels']) # 1=mono, 2=stereo
 
+ #this limits the recording time and calls the GUI
   record_forever = False
   visualise_console = bool(config['mic.visualise_console'])
   visualise_plot = bool(config['mic.visualise_plot'])
 
+  #why is this input None?
   reader = MicrophoneReader(None)
 
+  #seems redundant, but based on above hardcodes
   reader.start_recording(seconds=seconds,
     chunksize=chunksize,
     channels=channels)
-
+  
+#acknowledgement token for person
   msg = ' * started recording..'
   print colored(msg, attrs=['dark'])
 
+  #where does this True come from? what does it refer to?
   while True:
     bufferSize = int(reader.rate / reader.chunksize * seconds)
 
+    #incrementally explores the sample sound
+    #does it do this in real time?
     for i in range(0, bufferSize):
       nums = reader.process_recording()
 
+      #displays updates of processing 
       if visualise_console:
         msg = colored('   %05d', attrs=['dark']) + colored(' %s', 'green')
         print msg  % visual_peak.calc(nums)
@@ -61,17 +71,19 @@ if __name__ == '__main__':
 
     if not record_forever: break
 
+    #what are the parameters for this data?
   if visualise_plot:
     data = reader.get_recorded_data()[0]
     visual_plot.show(data)
 
+    #stop recording & let user know
   reader.stop_recording()
 
   msg = ' * recording has been stopped'
   print colored(msg, attrs=['dark'])
 
 
-
+#don't unstand this part
   def grouper(iterable, n, fillvalue=None):
     args = [iter(iterable)] * n
     return (filter(None, values) for values
@@ -84,13 +96,15 @@ if __name__ == '__main__':
 
   # reader.save_recorded('test.wav')
 
-
+  #gets fingerprint of music from recording
   Fs = fingerprint.DEFAULT_FS
   channel_amount = len(data)
 
+   #initializes both the function for result and the array for matches  
   result = set()
   matches = []
 
+  #hashtable to find the matching fingerprint
   def find_matches(samples, Fs=fingerprint.DEFAULT_FS):
     hashes = fingerprint.fingerprint(samples, Fs=Fs)
     return return_matches(hashes)
@@ -130,7 +144,7 @@ if __name__ == '__main__':
       for hash, sid, offset in x:
         # (sid, db_offset - song_sampled_offset)
         yield (sid, offset - mapper[hash])
-
+#does this add fingerprints to the database after identification?
   for channeln, channel in enumerate(data):
     # TODO: Remove prints or change them into optional logging.
     msg = '   fingerprinting channel %d/%d'
